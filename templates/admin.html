@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台管理 - 产品报价系统</title>
+<style>
+:root{--primary:#20242A;--accent:#B88A2D;--bg:#F6F7F9;--surface:#FFFFFF;--text:#20242A;--text-muted:#68707A;--border:#DDE1E6;--danger:#B42318;--success:#16A34A;--shadow:0 6px 18px rgba(32,36,42,.06);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Helvetica Neue",-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+.topbar{background:var(--primary);color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar .title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.topbar .title:before{content:"";width:6px;height:24px;background:var(--accent);border-radius:2px;}
+.topbar a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 16px;border:1px solid rgba(255,255,255,.2);border-radius:6px;transition:all .15s;}
+.topbar a:hover{color:#fff;border-color:#fff;}
+.stats{display:flex;gap:16px;padding:20px 24px;}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px 24px;flex:1;box-shadow:var(--shadow);}
+.stat-card .label{font-size:12px;color:var(--text-muted);font-weight:500;}
+.stat-card .value{font-size:28px;font-weight:700;margin-top:4px;}
+.stat-card .value span{font-size:14px;color:var(--text-muted);font-weight:400;margin-left:4px;}
+.main{display:flex;gap:0;padding:0 24px 24px;height:calc(100vh - 56px - 100px);}
+.sidebar{width:280px;background:#fff;border:1px solid var(--border);border-radius:8px 0 0 8px;border-right:none;display:flex;flex-direction:column;box-shadow:var(--shadow);}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sidebar-header h3{font-size:14px;font-weight:700;}
+.sidebar-header button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:600;}
+.sidebar-header button:hover{opacity:.88;}
+.cat-list{flex:1;overflow-y:auto;padding:8px;}
+.cat-item{padding:10px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .15s;margin-bottom:2px;}
+.cat-item:hover{background:#F6F7F9;}
+.cat-item.active{background:#FFF8E8;}
+.cat-item.active .cat-name{font-weight:700;color:var(--accent);}
+.cat-name{font-size:13px;flex:1;}
+.cat-actions{display:none;gap:4px;margin-left:8px;}
+.cat-item:hover .cat-actions{display:flex;}
+.cat-actions button{background:none;border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;color:var(--text-muted);}
+.cat-actions button:hover{border-color:var(--accent);color:var(--accent);}
+.cat-actions button.del:hover{border-color:var(--danger);color:var(--danger);}
+.content{flex:1;background:#fff;border:1px solid var(--border);border-radius:0 8px 8px 0;display:flex;flex-direction:column;box-shadow:var(--shadow);}
+.content-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.content-header h3{font-size:14px;font-weight:700;}
+.content-header .actions{display:flex;gap:8px;}
+.content-header .btn{height:34px;padding:0 14px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;background:#fff;display:inline-flex;align-items:center;gap:4px;}
+.content-header .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.content-header .btn-primary:hover{opacity:.88;}
+.content-header .btn:hover{border-color:var(--text-muted);}
+.table-wrap{flex:1;overflow:auto;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{background:#F8FAFC;padding:10px 12px;text-align:left;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:12px;color:#4B5563;position:sticky;top:0;z-index:5;}
+.data-table td{padding:8px 12px;border-bottom:1px solid #F5F5F5;font-weight:400;color:#303741;}
+.data-table tbody tr:hover{background:#FFF8E8;}
+.empty-state{text-align:center;padding:60px;color:var(--text-muted);}
+.price-cell{font-family:"SF Mono",Monaco,monospace;color:var(--danger);font-weight:500;}
+.row-actions{display:flex;gap:4px;}
+.row-actions button{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text-muted);}
+.row-actions button:hover{border-color:var(--accent);color:var(--accent);}
+.row-actions button.del:hover{border-color:var(--danger);color:var(--danger);}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:#fff;border-radius:10px;width:90%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.22);}
+.modal-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-header h3{font-size:16px;font-weight:700;}
+.modal-close{width:30px;height:30px;border:none;background:none;font-size:20px;cursor:pointer;color:var(--text-muted);border-radius:6px;}
+.modal-close:hover{color:var(--text);background:#F6F7F9;}
+.modal-body{flex:1;overflow-y:auto;padding:24px;}
+.modal-footer{padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text);}
+.form-group input,.form-group select,.form-group textarea{width:100%;height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-size:14px;outline:none;background:#fff;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,138,45,.12);}
+.form-group textarea{height:80px;padding:8px 12px;resize:vertical;}
+.form-row{display:flex;gap:12px;}
+.form-row .form-group{flex:1;}
+.btn{height:38px;padding:0 16px;border:1px solid var(--border);border-radius:6px;font-size:14px;cursor:pointer;font-weight:600;background:#fff;display:inline-flex;align-items:center;gap:4px;}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn-primary:hover{opacity:.88;}
+.btn-default:hover{border-color:var(--text-muted);}
+@media(max-width:768px){
+  .main{flex-direction:column;padding:0 12px 12px;height:auto;}
+  .sidebar{width:100%;border-radius:8px 8px 0 0;border-right:1px solid var(--border);border-bottom:none;max-height:200px;}
+  .content{border-radius:0 0 8px 8px;}
+  .stats{flex-direction:column;padding:12px;gap:8px;}
+  .data-table{font-size:12px;}
+  .data-table th,.data-table td{padding:6px 8px;}
+  .modal{width:95%;}
+  .form-row{flex-direction:column;gap:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="title">后台管理面板</div>
+  <a href="/">返回报价系统</a>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3>产品分类</h3>
+      <button onclick="showCatModal()">+ 新增分类</button>
+    </div>
+    <div class="cat-list" id="cat-list"></div>
+  </div>
+  <div class="content">
+    <div class="content-header">
+      <h3 id="content-title">请选择分类</h3>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="showProductModal()">+ 新增产品</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="product-table">
+      <div class="empty-state">请选择左侧分类查看产品</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="cat-modal-title">新增分类</h3>
+      <button class="modal-close" onclick="closeModal('cat-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-id">
+      <div class="form-group">
+        <label>分类名称</label>
+        <input type="text" id="cat-name" placeholder="如：云ERP系统">
+      </div>
+      <div class="form-group">
+        <label>所属产品线</label>
+        <input type="text" id="cat-group" placeholder="如：ERP产品线" list="group-list">
+        <datalist id="group-list"></datalist>
+      </div>
+      <div class="form-group">
+        <label>排序（数字越小越靠前）</label>
+        <input type="number" id="cat-order" value="99">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('cat-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveCategory()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="prod-modal-title">新增产品</h3>
+      <button class="modal-close" onclick="closeModal('product-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prod-id">
+      <input type="hidden" id="prod-category-id">
+      <div class="form-group">
+        <label>所属分类</label>
+        <select id="prod-category"></select>
+      </div>
+      <div class="form-group">
+        <label>产品名称 *</label>
+        <input type="text" id="prod-name" placeholder="如：云ERP标准版">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>版本/规格</label>
+          <input type="text" id="prod-spec" placeholder="如：标准版">
+        </div>
+        <div class="form-group">
+          <label>用户数</label>
+          <input type="text" id="prod-usercount" placeholder="如：1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>购买方式</label>
+          <select id="prod-buytype">
+            <option value="">不限</option>
+            <option value="买断">买断</option>
+            <option value="年费">年费</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>排序</label>
+          <input type="number" id="prod-order" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>零售价 *</label>
+          <input type="text" id="prod-retail" placeholder="如：5880">
+        </div>
+        <div class="form-group">
+          <label>代理价</label>
+          <input type="text" id="prod-agent" placeholder="如：1750">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>次年服务器代理价</label>
+          <input type="text" id="prod-server-agent" placeholder="如：550">
+        </div>
+        <div class="form-group">
+          <label>次年服务器零售价</label>
+          <input type="text" id="prod-server-retail" placeholder="如：1880">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>备注说明</label>
+        <textarea id="prod-notes" placeholder="备注信息（报价单中会显示给客户）"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('product-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveProduct()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let categories = [];
+let currentCatId = null;
+
+async function api(path, method='GET', data=null) {
+  const opts = {method, headers: {'Content-Type': 'application/json'}};
+  if (data) opts.body = JSON.stringify(data);
+  const resp = await fetch(path, opts);
+  return resp.json();
+}
+
+async function init() {
+  await loadCategories();
+  await loadStats();
+}
+
+async function loadCategories() {
+  categories = await api('/api/categories');
+  renderCatList();
+  renderGroupOptions();
+}
+
+async function loadStats() {
+  const stats = await api('/api/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="label">产品线</div><div class="value">${stats.groups}<span>个</span></div></div>
+    <div class="stat-card"><div class="label">分类</div><div class="value">${stats.categories}<span>个</span></div></div>
+    <div class="stat-card"><div class="label">产品</div><div class="value">${stats.products}<span>个</span></div></div>
+  `;
+}
+
+function renderCatList() {
+  const list = document.getElementById('cat-list');
+  if (!categories.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">暂无分类</div>';
+    return;
+  }
+  const groups = {};
+  categories.forEach(c => {
+    if (!groups[c.group_name]) groups[c.group_name] = [];
+    groups[c.group_name].push(c);
+  });
+  let html = '';
+  Object.keys(groups).sort().forEach(g => {
+    html += '<div style="padding:6px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">' + g + '</div>';
+    groups[g].sort((a,b) => a.sort_order - b.sort_order).forEach(c => {
+      html += '<div class="cat-item ' + (c.id===currentCatId?'active':'') + '" onclick="selectCategory(' + c.id + ')">' +
+        '<span class="cat-name">' + c.name + '</span>' +
+        '<div class="cat-actions">' +
+        '<button onclick="event.stopPropagation();editCategory(' + c.id + ')">编辑</button>' +
+        '<button class="del" onclick="event.stopPropagation();deleteCategory(' + c.id + ',\'' + c.name.replace(/'/g,"\\'") + '\')">删除</button>' +
+        '</div></div>';
+    });
+  });
+  list.innerHTML = html;
+}
+
+function renderGroupOptions() {
+  const groups = [...new Set(categories.map(c => c.group_name))];
+  document.getElementById('group-list').innerHTML = groups.map(g => '<option value="' + g + '">').join('');
+  const select = document.getElementById('prod-category');
+  select.innerHTML = categories.map(c => '<option value="' + c.id + '">' + c.name + ' (' + c.group_name + ')</option>').join('');
+}
+
+function selectCategory(id) {
+  currentCatId = id;
+  renderCatList();
+  loadProducts(id);
+  const cat = categories.find(c => c.id === id);
+  document.getElementById('content-title').textContent = cat ? cat.name + ' - 产品列表' : '产品列表';
+}
+
+async function loadProducts(catId) {
+  const products = await api('/api/products?category_id=' + catId);
+  if (!products.length) {
+    document.getElementById('product-table').innerHTML = '<div class="empty-state">该分类下暂无产品，点击右上角新增产品</div>';
+    return;
+  }
+  let html = '<table class="data-table"><thead><tr>' +
+    '<th>产品名称</th><th>规格</th><th>用户数</th><th>购买方式</th>' +
+    '<th>零售价</th><th>代理价</th><th>服务器费</th><th>备注</th><th>操作</th>' +
+    '</tr></thead><tbody>';
+  products.forEach(p => {
+    html += '<tr>' +
+      '<td>' + p.product_name + '</td>' +
+      '<td>' + (p.spec||'-') + '</td>' +
+      '<td>' + (p.user_count||'-') + '</td>' +
+      '<td>' + (p.buy_type||'-') + '</td>' +
+      '<td class="price-cell">' + (p.retail_price||'-') + '</td>' +
+      '<td style="color:var(--text-muted);font-family:monospace;">' + (p.agent_price||'-') + '</td>' +
+      '<td style="font-family:monospace;">' + (p.server_retail||'-') + '</td>' +
+      '<td style="max-width:200px;color:var(--text-muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.notes||'').substring(0,30) + '</td>' +
+      '<td><div class="row-actions">' +
+      '<button onclick="editProduct(' + p.id + ')">编辑</button>' +
+      '<button class="del" onclick="deleteProduct(' + p.id + ')">删除</button>' +
+      '</div></td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('product-table').innerHTML = html;
+}
+
+function showCatModal() {
+  document.getElementById('cat-modal-title').textContent = '新增分类';
+  document.getElementById('cat-id').value = '';
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-group').value = '';
+  document.getElementById('cat-order').value = '99';
+  document.getElementById('cat-modal').classList.add('show');
+}
+
+function editCategory(id) {
+  const c = categories.find(c => c.id === id);
+  if (!c) return;
+  document.getElementById('cat-modal-title').textContent = '编辑分类';
+  document.getElementById('cat-id').value = c.id;
+  document.getElementById('cat-name').value = c.name;
+  document.getElementById('cat-group').value = c.group_name;
+  document.getElementById('cat-order').value = c.sort_order;
+  document.getElementById('cat-modal').classList.add('show');
+}
+
+async function saveCategory() {
+  const id = document.getElementById('cat-id').value;
+  const data = {
+    name: document.getElementById('cat-name').value.trim(),
+    group_name: document.getElementById('cat-group').value.trim() || '默认产品线',
+    sort_order: parseInt(document.getElementById('cat-order').value) || 99
+  };
+  if (!data.name) { alert('请输入分类名称'); return; }
+  if (id) { await api('/api/categories/' + id, 'PUT', data); }
+  else { await api('/api/categories', 'POST', data); }
+  closeModal('cat-modal');
+  await loadCategories();
+  await loadStats();
+}
+
+async function deleteCategory(id, name) {
+  if (!confirm('确定删除分类「' + name + '」？\n该分类下所有产品也会被删除！')) return;
+  await api('/api/categories/' + id, 'DELETE');
+  if (currentCatId === id) {
+    currentCatId = null;
+    document.getElementById('content-title').textContent = '请选择分类';
+    document.getElementById('product-table').innerHTML = '<div class="empty-state">请选择左侧分类查看产品</div>';
+  }
+  await loadCategories();
+  await loadStats();
+}
+
+function showProductModal() {
+  if (!categories.length) { alert('请先创建分类'); return; }
+  document.getElementById('prod-modal-title').textContent = '新增产品';
+  document.getElementById('prod-id').value = '';
+  document.getElementById('prod-category').value = currentCatId || '';
+  document.getElementById('prod-name').value = '';
+  document.getElementById('prod-spec').value = '';
+  document.getElementById('prod-usercount').value = '';
+  document.getElementById('prod-buytype').value = '';
+  document.getElementById('prod-order').value = '0';
+  document.getElementById('prod-retail').value = '';
+  document.getElementById('prod-agent').value = '';
+  document.getElementById('prod-server-agent').value = '';
+  document.getElementById('prod-server-retail').value = '';
+  document.getElementById('prod-notes').value = '';
+  document.getElementById('product-modal').classList.add('show');
+}
+
+async function editProduct(id) {
+  const products = await api('/api/products');
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('prod-modal-title').textContent = '编辑产品';
+  document.getElementById('prod-id').value = p.id;
+  document.getElementById('prod-category').value = p.category_id;
+  document.getElementById('prod-name').value = p.product_name;
+  document.getElementById('prod-spec').value = p.spec;
+  document.getElementById('prod-usercount').value = p.user_count;
+  document.getElementById('prod-buytype').value = p.buy_type;
+  document.getElementById('prod-order').value = p.sort_order;
+  document.getElementById('prod-retail').value = p.retail_price;
+  document.getElementById('prod-agent').value = p.agent_price;
+  document.getElementById('prod-server-agent').value = p.server_agent;
+  document.getElementById('prod-server-retail').value = p.server_retail;
+  document.getElementById('prod-notes').value = p.notes;
+  document.getElementById('product-modal').classList.add('show');
+}
+
+async function saveProduct() {
+  const id = document.getElementById('prod-id').value;
+  const data = {
+    category_id: parseInt(document.getElementById('prod-category').value),
+    product_name: document.getElementById('prod-name').value.trim(),
+    spec: document.getElementById('prod-spec').value.trim(),
+    user_count: document.getElementById('prod-usercount').value.trim(),
+    buy_type: document.getElementById('prod-buytype').value,
+    sort_order: parseInt(document.getElementById('prod-order').value) || 0,
+    retail_price: document.getElementById('prod-retail').value.trim(),
+    agent_price: document.getElementById('prod-agent').value.trim(),
+    server_agent: document.getElementById('prod-server-agent').value.trim(),
+    server_retail: document.getElementById('prod-server-retail').value.trim(),
+    notes: document.getElementById('prod-notes').value.trim()
+  };
+  if (!data.product_name) { alert('请输入产品名称'); return; }
+  if (!data.retail_price) { alert('请输入零售价'); return; }
+  if (!data.category_id) { alert('请选择分类'); return; }
+  if (id) { await api('/api/products/' + id, 'PUT', data); }
+  else { await api('/api/products', 'POST', data); }
+  closeModal('product-modal');
+  if (currentCatId) loadProducts(currentCatId);
+  await loadStats();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('确定删除这个产品？')) return;
+  await api('/api/products/' + id, 'DELETE');
+  if (currentCatId) loadProducts(currentCatId);
+  await loadStats();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+});
+
+init();
+</script>
+</body>
+</html>
