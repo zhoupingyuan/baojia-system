@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>产品报价系统</title>
+<script>
+var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+if (isMobile) document.documentElement.classList.add('mobile');
+if (isWeChat) document.documentElement.classList.add('wechat');
+</script>
+<style>
+:root{--primary:#20242A;--accent:#B88A2D;--bg:#F6F7F9;--surface:#FFFFFF;--text:#20242A;--text-muted:#68707A;--border:#DDE1E6;--price-retail:#B42318;--shadow:0 6px 18px rgba(32,36,42,.06);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Helvetica Neue",-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased;}
+#app{display:block;}
+.toolbar{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;height:64px;gap:20px;box-shadow:0 1px 0 rgba(32,36,42,.04);}
+.toolbar .logo{font-size:16px;font-weight:700;letter-spacing:0;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.toolbar .logo:before{content:"";width:8px;height:28px;background:var(--accent);display:inline-block;border-radius:2px;}
+.search-box{flex:1;max-width:480px;position:relative;}
+.search-box input{width:100%;height:40px;border:1px solid var(--border);border-radius:6px;background:#fff;padding:0 42px 0 14px;font-size:14px;outline:none;transition:all .2s;}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(184,138,45,.12);}
+.search-box::after{content:"\2192";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--accent);cursor:pointer;}
+.toolbar .spacer{flex:1;}
+.btn{height:38px;padding:0 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-weight:600;letter-spacing:0;background:transparent;}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn-primary:hover{opacity:.88;}
+.btn-default{color:var(--text);background:#fff;}
+.btn-default:hover{border-color:var(--text);}
+.btn-success{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-success:hover{opacity:.88;}
+.btn .badge{background:var(--accent);color:#fff;padding:1px 8px;font-size:11px;min-width:20px;text-align:center;border-radius:999px;}
+.pl-tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0;height:44px;align-items:end;overflow-x:auto;white-space:nowrap;}
+.pl-tab{padding:0 20px;height:44px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;font-weight:600;transition:all .2s;white-space:nowrap;}
+.pl-tab:hover{color:var(--text);}
+.pl-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+.prod-tabs{background:#FBFCFD;padding:14px 28px;border-bottom:1px solid var(--border);display:flex;gap:8px;overflow-x:auto;white-space:nowrap;}
+.prod-tab{height:34px;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#4B5563;flex-shrink:0;font-weight:500;transition:all .15s;white-space:nowrap;}
+.prod-tab:hover{color:var(--text);border-color:var(--text);}
+.prod-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.filter-bar{position:sticky;top:64px;z-index:90;padding:12px 28px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);box-shadow:0 1px 0 var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.filter-select{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-size:12px;background:#fff;outline:none;min-width:160px;color:var(--text);font-weight:500;}
+.filter-select:focus{border-color:var(--accent);}
+.filter-btns{display:flex;gap:6px;}
+.filter-btn{height:32px;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#4B5563;font-weight:600;transition:all .15s;}
+.filter-btn:hover{border-color:var(--text);}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.table-container{padding:18px 28px 32px;}
+.table-wrap{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:calc(100vh - 280px);box-shadow:var(--shadow);}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table thead{background:#F8FAFC;}
+.data-table th{position:sticky;top:0;z-index:5;background:#F8FAFC;padding:12px 10px;text-align:left;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:12px;color:#4B5563;}
+.data-table td{padding:11px 10px;border-bottom:1px solid #F5F5F5;vertical-align:top;font-weight:400;color:#303741;}
+.data-table tbody tr:nth-child(even){background:#FCFCFD;}
+.data-table tbody tr:hover{background:#FFF8E8;}
+.col-price{text-align:right;font-family:"SF Mono",Monaco,monospace;font-weight:400;}
+.data-table th.col-price{text-align:right;}
+.price-retail{color:var(--price-retail);font-weight:500;}
+.col-check{width:44px;text-align:center;}
+.data-table input[type=checkbox]{cursor:pointer;width:16px;height:16px;accent-color:var(--accent);}
+.notes-cell{max-width:320px;word-break:break-word;color:#6B7280;font-size:12px;line-height:1.55;}
+.tag-buyout{display:inline-block;padding:2px 10px;border:1px solid #CBD5E1;border-radius:999px;font-size:11px;color:#334155;font-weight:600;background:#fff;}
+.tag-annual{display:inline-block;padding:2px 10px;border:1px solid #E3B75F;border-radius:999px;color:#8A6116;font-size:11px;font-weight:600;background:#FFFBEB;}
+.highlight{border-radius:3px;background:#F2B84B;color:#1F2937;padding:0 2px;}
+.empty-state{text-align:center;padding:48px;color:var(--text-muted);font-weight:300;}
+.loading-state{text-align:center;padding:60px;color:var(--text-muted);}
+.loading-state .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#quote-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;}
+#quote-modal.show{display:flex;}
+.modal-content{background:#fff;border-radius:10px;max-width:900px;width:90%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border);box-shadow:0 24px 80px rgba(0,0,0,.22);}
+.modal-header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-header h2{font-size:18px;font-weight:700;}
+.close-btn{width:30px;height:30px;border:none;background:none;font-size:20px;cursor:pointer;color:var(--text-muted);}
+.close-btn:hover{color:var(--text);}
+.modal-body{flex:1;overflow-y:auto;padding:24px;}
+.modal-footer{padding:12px 24px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px;}
+.modal-footer .btn{justify-content:center;}
+.quote-doc{background:#fff;padding:24px 48px;max-width:860px;margin:0 auto;border:1px solid #E5E7EB;border-radius:8px;}
+.quote-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--text);}
+.quote-header .quote-logo-text{font-size:22px;font-weight:700;letter-spacing:1px;margin-bottom:6px;}
+.quote-header .quote-logo-text span{color:var(--accent);}
+.quote-title{font-size:20px;font-weight:600;letter-spacing:1px;color:var(--text);margin-top:6px;}
+.quote-meta{display:flex;justify-content:space-between;margin-bottom:16px;font-size:13px;color:var(--text-muted);font-weight:300;}
+.quote-meta-item{white-space:nowrap;}
+.quote-input{border:none;border-bottom:1px solid var(--border);border-radius:0;padding:3px 6px;font-size:13px;width:160px;outline:none;background:transparent;}
+.quote-input:focus{border-bottom-color:var(--accent);}
+.quote-table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+.quote-table th{background:transparent;color:var(--text);padding:10px 8px;text-align:left;font-size:12px;font-weight:500;border-bottom:2px solid var(--text);}
+.quote-table td{padding:8px;border-bottom:1px solid #F0F0F0;font-size:12px;vertical-align:top;font-weight:300;}
+.quote-table tbody tr:hover{background:#FFF8E8;}
+.quote-total{text-align:right;margin-bottom:16px;}
+.quote-total .label{color:var(--text-muted);font-size:13px;font-weight:300;}
+.quote-total .amount{color:var(--price-retail);font-weight:500;font-size:22px;letter-spacing:1px;}
+.quote-footer{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);font-weight:300;}
+.quote-footer p{margin-bottom:4px;}
+.btn-remove{padding:2px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;font-size:11px;color:var(--text-muted);}
+.btn-remove:hover{border-color:var(--price-retail);color:var(--price-retail);}
+#img-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:2000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;padding:20px;}
+#img-overlay.show{display:flex;}
+#img-preview{max-width:100%;max-height:80vh;border-radius:8px;background:#fff;}
+#img-download{margin-top:16px;color:#fff;background:var(--accent);padding:8px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;display:none;}
+@media(max-width:900px){
+  .toolbar{height:auto;padding:10px 14px;flex-wrap:wrap;gap:10px;}
+  .toolbar .logo{width:100%;}
+  .search-box{order:3;max-width:none;width:100%;flex:1 0 100%;}
+  .filter-bar{top:0;padding:10px 14px;}
+  .table-container{padding:12px 14px 24px;overflow-x:auto;}
+  .data-table{min-width:760px;}
+  .pl-tabs,.prod-tabs{padding-left:14px;padding-right:14px;}
+}
+@media(max-width:768px){
+  .toolbar{flex-wrap:wrap;height:auto;padding:8px 12px;gap:8px;}
+  .toolbar .logo{font-size:13px;width:100%;}
+  .search-box{order:3;width:100%;max-width:100%;flex:1 1 100%;}
+  .search-box input{height:36px;font-size:14px;}
+  .btn{height:32px;padding:0 10px;font-size:12px;}
+  .pl-tabs{padding:0 8px;height:auto;}
+  .pl-tab{padding:8px 12px;font-size:12px;}
+  .prod-tabs{padding:6px 8px;gap:4px;}
+  .prod-tab{padding:4px 10px;font-size:11px;height:auto;}
+  .filter-bar{padding:8px;gap:6px;flex-direction:column;align-items:stretch;}
+  .filter-select{width:100%;min-width:0;height:30px;}
+  .filter-btns{flex-wrap:wrap;}
+  .table-container{padding:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .data-table{font-size:12px;min-width:500px;}
+  .data-table th{padding:8px 4px;font-size:10px;}
+  .data-table td{padding:6px 4px;}
+  .col-check{width:32px;}
+  .notes-cell{max-width:120px;font-size:11px;}
+  .quote-doc{padding:16px 14px;}
+  .quote-header .quote-logo-text{font-size:18px;}
+  .quote-meta{flex-direction:column;gap:8px;}
+  .quote-input{width:100%;}
+  .quote-table{font-size:11px;}
+  .modal-content{width:95%;border-radius:8px;}
+  .modal-header{padding:10px 12px;}
+  .modal-body{padding:12px;}
+  .modal-footer{padding:8px 12px;}
+}
+@media(max-width:520px){
+  .modal-footer{grid-template-columns:1fr 1fr;}
+  .quote-meta{flex-direction:column;}
+  .quote-input{width:100%;}
+}
+@media(pointer:coarse){
+  .data-table input[type=checkbox]{width:20px;height:20px;}
+  .col-check{width:44px;}
+  .btn{min-height:36px;}
+  .filter-btn{min-height:32px;}
+}
+.mobile #quote-modal.show{display:block;}
+.mobile .modal-content{width:100%;max-width:100%;max-height:100vh;height:100vh;border-radius:0;border:none;}
+.mobile .modal-body{padding:12px;}
+.mobile .modal-footer{padding:8px 12px;gap:6px;}
+.mobile .modal-footer .btn{flex:1;min-width:70px;font-size:12px;}
+.mobile .quote-doc{padding:16px 14px;max-width:100%;}
+.mobile .quote-header .quote-logo-text{font-size:18px;}
+.mobile .quote-meta{flex-direction:row;gap:12px;font-size:12px;}
+.mobile .quote-input{width:90px;font-size:12px;}
+.mobile .quote-table{font-size:11px;}
+.mobile .quote-table th{padding:5px 3px;font-size:9px;}
+.mobile .quote-table td{padding:4px 3px;font-size:10px;}
+.mobile .quote-total .amount{font-size:16px;}
+.mobile .quote-footer{font-size:10px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="toolbar">
+    <div class="logo">产品报价系统</div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="搜索产品名称、规格...">
+    </div>
+    <div class="spacer"></div>
+    <a href="/admin" class="btn btn-default" style="text-decoration:none;">后台管理</a>
+    <button class="btn btn-success" onclick="openQuoteModal()">报价单 <span class="badge" id="quote-count">0</span></button>
+    <button class="btn btn-default" onclick="resetApp()">重置</button>
+  </div>
+  <div class="pl-tabs" id="pl-tabs"></div>
+  <div class="prod-tabs" id="prod-tabs"></div>
+  <div class="filter-bar" id="filter-bar" style="display:none;"></div>
+  <div class="table-container" id="table-container">
+    <div class="loading-state"><div class="spinner"></div><p>加载中...</p></div>
+  </div>
+</div>
+
+<div id="quote-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>产品解决方案报价</h2>
+      <button class="close-btn" onclick="closeQuoteModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="quote-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="clearQuote()">清空</button>
+      <button class="btn btn-default" onclick="copyQuoteText()">复制文本</button>
+      <button class="btn btn-default" onclick="exportQuoteCSV()">导出表格</button>
+      <button class="btn btn-default" onclick="printQuote()">打印/PDF</button>
+      <button class="btn btn-primary" id="download-png-btn" onclick="downloadQuotePNG()">保存图片</button>
+    </div>
+  </div>
+</div>
+
+<div id="img-overlay">
+  <img id="img-preview" src="">
+  <a id="img-download" href="#" download="baojiadan.png">下载到电脑</a>
+  <p style="color:#999;font-size:13px;margin-top:12px;">手机长按图片保存，电脑可点击上方下载</p>
+  <a onclick="document.getElementById('img-overlay').classList.remove('show')" style="color:#999;font-size:13px;cursor:pointer;margin-top:8px;">关闭</a>
+</div>
+
+<script>
+// ===== 状态 =====
+let allData = {};
+let categories = [];
+let currentGroup = '';
+let currentSheet = null;
+let selectedItems = [];
+let activeFilters = {product:'', userCount:'', buyType:''};
+
+// ===== API =====
+async function api(path) {
+  const resp = await fetch(path);
+  return resp.json();
+}
+
+// ===== 初始化 =====
+async function init() {
+  try {
+    categories = await api('/api/categories');
+    const products = await api('/api/products');
+    
+    // 按分类组织数据
+    allData = {};
+    categories.forEach(c => {
+      allData[c.name] = products.filter(p => p.category_id === c.id).map(p => ({
+        ...p,
+        sheetName: c.name,
+        group: c.group_name,
+        id: String(p.id)
+      }));
+    });
+    
+    // 排序分类
+    const sortedCats = [...categories].sort((a,b) => {
+      const ga = a.group_name;
+      const gb = b.group_name;
+      if (ga !== gb) return ga.localeCompare(gb);
+      return a.sort_order - b.sort_order;
+    });
+    
+    if (sortedCats.length > 0) {
+      currentGroup = sortedCats[0].group_name;
+      initTabs();
+      const firstCat = sortedCats.find(c => c.group_name === currentGroup);
+      if (firstCat) switchSheet(firstCat.name);
+    }
+  } catch(e) {
+    console.error('Init error:', e);
+    document.getElementById('table-container').innerHTML = '<div class="empty-state"><p>数据加载失败，请刷新重试</p></div>';
+  }
+}
+
+function initTabs() {
+  const plTabs = document.getElementById('pl-tabs');
+  const groups = [...new Set(categories.map(c => c.group_name))];
+  plTabs.innerHTML = groups.map(g =>
+    `<button class="pl-tab ${g===currentGroup?'active':''}" onclick="switchGroup('${g}')">${g}</button>`
+  ).join('');
+  renderProductTabs();
+}
+
+function switchGroup(group) {
+  currentGroup = group;
+  currentSheet = null;
+  activeFilters = {product:'', userCount:'', buyType:''};
+  document.getElementById('pl-tabs').querySelectorAll('.pl-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent === group);
+  });
+  renderProductTabs();
+  document.getElementById('filter-bar').style.display = 'none';
+  document.getElementById('table-container').innerHTML = '<div class="empty-state"><p>请选择产品标签查看价格</p></div>';
+}
+
+function renderProductTabs() {
+  const prodTabs = document.getElementById('prod-tabs');
+  const sheets = categories.filter(c => c.group_name === currentGroup).sort((a,b) => a.sort_order - b.sort_order);
+  if (!sheets.length) {
+    prodTabs.innerHTML = '<span style="color:var(--text-muted);padding:6px 14px;font-size:12px;">暂无数据</span>';
+    return;
+  }
+  prodTabs.innerHTML = sheets.map(c =>
+    `<button class="prod-tab ${c.name===currentSheet?'active':''}" onclick="switchSheet('${c.name.replace(/'/g,"\\'")}')">${c.name}</button>`
+  ).join('');
+}
+
+function switchSheet(name) {
+  currentSheet = name;
+  activeFilters = {product:'', userCount:'', buyType:''};
+  document.querySelectorAll('.prod-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent === name);
+  });
+  renderFilterBar();
+  renderTable();
+}
+
+// ===== 筛选 =====
+function renderFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  const records = getSheetRecords(currentSheet);
+  if (!records.length) { bar.style.display = 'none'; return; }
+  
+  const products = [...new Set(records.map(r => r.product_name).filter(Boolean))].sort();
+  const userCounts = [...new Set(records.map(r => r.user_count).filter(Boolean))].sort((a,b) => {
+    const na=parseInt(a), nb=parseInt(b);
+    if(!isNaN(na)&&!isNaN(nb)) return na-nb;
+    return a.localeCompare(b);
+  });
+  const buyTypes = [...new Set(records.map(r => r.buy_type).filter(Boolean))];
+  
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <select class="filter-select" id="filter-product" onchange="applyFilter('product', this.value)">
+      <option value="">全部产品</option>
+      ${products.map(p => `<option value="${p}" ${activeFilters.product===p?'selected':''}>${p}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="filter-usercount" onchange="applyFilter('userCount', this.value)">
+      <option value="">全部用户数</option>
+      ${userCounts.map(u => `<option value="${u}" ${activeFilters.userCount===u?'selected':''}>${u}</option>`).join('')}
+    </select>
+    <div class="filter-btns">
+      ${buyTypes.map(bt => `<button class="filter-btn ${activeFilters.buyType===bt?'active':''}" onclick="applyFilter('buyType','${bt}')">${bt}</button>`).join('')}
+    </div>
+  `;
+}
+
+function applyFilter(type, val) {
+  if (type==='buyType' && activeFilters.buyType===val) val='';
+  if (type==='product') activeFilters.userCount = '';
+  activeFilters[type] = val;
+  renderFilterBar();
+  renderTable();
+}
+
+function getSheetRecords(sheetName) {
+  return (allData[sheetName] || []).filter(r => r.product_name && r.retail_price);
+}
+
+function getFilteredRecords() {
+  let records = getSheetRecords(currentSheet);
+  const searchVal = document.getElementById('search-input').value.trim().toLowerCase();
+  if (searchVal) {
+    records = records.filter(r =>
+      (r.product_name||'').toLowerCase().includes(searchVal) ||
+      (r.spec||'').toLowerCase().includes(searchVal) ||
+      (r.notes||'').toLowerCase().includes(searchVal)
+    );
+  }
+  if (activeFilters.product) records = records.filter(r => r.product_name === activeFilters.product);
+  if (activeFilters.userCount) records = records.filter(r => r.user_count === activeFilters.userCount);
+  if (activeFilters.buyType) records = records.filter(r => r.buy_type === activeFilters.buyType);
+  records.sort((a,b) => {
+    const na=parseInt(a.user_count), nb=parseInt(b.user_count);
+    if(!isNaN(na)&&!isNaN(nb)) return na-nb;
+    if(!isNaN(na)) return -1;
+    if(!isNaN(nb)) return 1;
+    return (a.user_count||'').localeCompare(b.user_count||'');
+  });
+  return records;
+}
+
+// ===== 表格渲染 =====
+function renderTable() {
+  const container = document.getElementById('table-container');
+  if (!currentSheet) {
+    container.innerHTML = '<div class="empty-state"><p>请选择产品标签</p></div>';
+    return;
+  }
+  const records = getFilteredRecords();
+  if (!records.length) {
+    container.innerHTML = '<div class="empty-state"><p>未找到匹配的数据</p></div>';
+    return;
+  }
+  
+  const hasSpec = records.some(r => r.spec);
+  const hasUserCount = records.some(r => r.user_count);
+  const hasBuyType = records.some(r => r.buy_type);
+  const hasServerFee = records.some(r => r.server_retail);
+  const hasNotes = records.some(r => r.notes);
+  const searchVal = document.getElementById('search-input').value.trim().toLowerCase();
+  
+  let notesGroups = [];
+  if (hasNotes) {
+    let i = 0;
+    while (i < records.length) {
+      let j = i + 1;
+      while (j < records.length && records[j].product_name === records[i].product_name && records[j].notes === records[i].notes) j++;
+      notesGroups.push({start: i, count: j - i});
+      i = j;
+    }
+  }
+  
+  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th class="col-check"><input type="checkbox" onclick="toggleAll(this)" ${isAllSelected(records)?'checked':''}></th>
+    <th>产品名称</th>
+    ${hasSpec?'<th>版本/规格</th>':''}
+    ${hasUserCount?'<th>用户数</th>':''}
+    ${hasBuyType?'<th>购买方式</th>':''}
+    <th class="col-price">零售价</th>
+    ${hasServerFee?'<th class="col-price">次年服务器费</th>':''}
+    ${hasNotes?'<th>备注</th>':''}
+  </tr></thead><tbody>`;
+  
+  records.forEach((r, idx) => {
+    const isSelected = selectedItems.some(i => i.id === r.id);
+    const pn = highlightText(r.product_name, searchVal);
+    const ng = notesGroups.find(g => g.start === idx);
+    const notesRowspan = ng ? ` rowspan="${ng.count}"` : '';
+    const showNotes = ng !== undefined;
+    
+    var retailDisplay = r.retail_price || '-';
+    var serverDisplay = r.server_retail || '';
+    if (r.retail_price && /^\d+$/.test(r.retail_price.replace(/[,.]/g,''))) {
+      retailDisplay = r.retail_price + (r.buy_type === '年费' ? '/元年' : '/元');
+    }
+    if (r.server_retail && /^\d+$/.test(r.server_retail.replace(/[,.]/g,''))) {
+      serverDisplay = r.server_retail + '/元年';
+    }
+    
+    var buyTypeTag = '';
+    if (r.buy_type === '买断') buyTypeTag = '<span class="tag-buyout">买断</span>';
+    else if (r.buy_type === '年费') buyTypeTag = '<span class="tag-annual">年费</span>';
+    else if (r.buy_type) buyTypeTag = r.buy_type;
+    
+    html += `<tr>
+      <td class="col-check"><input type="checkbox" data-id="${r.id}" ${isSelected?'checked':''} onchange="toggleItem('${r.id}')"></td>
+      <td>${pn}</td>
+      ${hasSpec?`<td>${highlightText(r.spec||'', searchVal)}</td>`:''}
+      ${hasUserCount?`<td>${r.user_count||''}</td>`:''}
+      ${hasBuyType?`<td>${buyTypeTag}</td>`:''}
+      <td class="col-price price-retail">${retailDisplay}</td>
+      ${hasServerFee?`<td class="col-price">${serverDisplay||'-'}</td>`:''}
+      ${hasNotes?`<td class="notes-cell"${notesRowspan}>${showNotes?escapeHtml(r.notes||''):''}</td>`:''}
+    </tr>`;
+  });
+  
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+function escapeHtml(t) {
+  if (!t) return '';
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+function highlightText(text, search) {
+  if (!text || !search) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const regex = new RegExp('(' + search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return escaped.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// ===== 报价单管理 =====
+function toggleItem(id) {
+  let item = null;
+  for (const sn of Object.keys(allData)) {
+    const found = allData[sn].find(r => r.id === id);
+    if (found) { item = found; break; }
+  }
+  if (!item) return;
+  const idx = selectedItems.findIndex(i => i.id === id);
+  if (idx >= 0) selectedItems.splice(idx, 1);
+  else selectedItems.push(item);
+  updateQuoteCount();
+}
+
+function toggleAll(cb) {
+  const container = document.getElementById('table-container');
+  container.querySelectorAll('tbody input[type="checkbox"]').forEach(c => {
+    const id = c.getAttribute('data-id');
+    if (!id) return;
+    const isSel = selectedItems.some(i => i.id === id);
+    if (cb.checked && !isSel) { toggleItem(id); c.checked = true; }
+    else if (!cb.checked && isSel) { toggleItem(id); c.checked = false; }
+  });
+}
+
+function isAllSelected(records) {
+  return records.length > 0 && records.every(r => selectedItems.some(i => i.id === r.id));
+}
+
+function updateQuoteCount() {
+  document.getElementById('quote-count').textContent = selectedItems.length;
+}
+
+function openQuoteModal() {
+  if (!selectedItems.length) { alert('请先选择需要报价的产品'); return; }
+  renderQuote();
+  document.getElementById('quote-modal').classList.add('show');
+}
+
+function closeQuoteModal() {
+  document.getElementById('quote-modal').classList.remove('show');
+}
+
+function clearQuote() {
+  if (!confirm('清空报价单中所有产品？')) return;
+  selectedItems = [];
+  updateQuoteCount();
+  renderQuote();
+  document.querySelectorAll('.data-table input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function removeQuoteItem(id) {
+  selectedItems = selectedItems.filter(i => i.id !== id);
+  updateQuoteCount();
+  renderQuote();
+  document.querySelectorAll('.data-table input[type="checkbox"]').forEach(cb => {
+    if (cb.getAttribute('data-id') === id) cb.checked = false;
+  });
+}
+
+function resetApp() {
+  if (!confirm('清空已选报价项目？')) return;
+  selectedItems = [];
+  currentGroup = categories[0]?.group_name || '';
+  currentSheet = null;
+  activeFilters = {product:'', userCount:'', buyType:''};
+  initTabs();
+  updateQuoteCount();
+  document.getElementById('filter-bar').style.display = 'none';
+  document.getElementById('table-container').innerHTML = '<div class="empty-state"><p>请选择产品标签查看价格</p></div>';
+}
+
+// ===== 报价单渲染 =====
+function renderQuote() {
+  const body = document.getElementById('quote-body');
+  const today = new Date();
+  const dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  
+  let html = `<div class="quote-doc" id="quote-doc">
+    <div class="quote-header">
+      <div class="quote-logo-text">产品<span>报价</span>系统</div>
+      <div class="quote-title">产品解决方案报价单</div>
+    </div>
+    <div class="quote-meta">
+      <div class="quote-meta-item">客户名称：<input type="text" id="quote-customer" placeholder="请输入客户名称" class="quote-input"></div>
+      <div class="quote-meta-item">报价日期：<input type="text" id="quote-date" value="${dateStr}" class="quote-input"></div>
+    </div>
+    <table class="quote-table">
+      <thead><tr>
+        <th>序号</th><th>产品名称</th><th>版本/规格</th><th>用户数</th><th>购买方式</th>
+        <th class="price-col">零售价</th><th>操作</th>
+      </tr></thead><tbody>`;
+  
+  var totalAmount = 0;
+  var serverFeeItems = [];
+  selectedItems.forEach((item, idx) => {
+    var rp = item.retail_price || '-';
+    var numPrice = parseFloat((item.retail_price||'').replace(/[^0-9.]/g,''));
+    if (item.retail_price && /^\d+$/.test(item.retail_price.replace(/[,.]/g,''))) {
+      rp = item.retail_price + (item.buy_type === '年费' ? '/元年' : '/元');
+    }
+    if (!isNaN(numPrice)) totalAmount += numPrice;
+    if (item.server_retail && item.buy_type === '买断') {
+      var sfDisplay = item.server_retail;
+      if (/^\d+$/.test(item.server_retail.replace(/[,.]/g,''))) sfDisplay = item.server_retail + '/元年';
+      serverFeeItems.push(item.product_name + '：' + sfDisplay);
+    }
+    html += `<tr>
+      <td>${idx+1}</td>
+      <td>${escapeHtml(item.product_name)}</td>
+      <td>${escapeHtml(item.spec||'')}</td>
+      <td>${escapeHtml(item.user_count||'')}</td>
+      <td>${escapeHtml(item.buy_type||'')}</td>
+      <td class="price-col price-retail">${escapeHtml(rp)}</td>
+      <td><button class="btn-remove" onclick="removeQuoteItem('${item.id}')">移除</button></td>
+    </tr>`;
+  });
+  
+  html += `</tbody></table>
+    <div class="quote-total">`;
+  if (totalAmount > 0) html += '<div><span class="label">合计金额：</span><span class="amount">\u00a5 ' + totalAmount.toLocaleString() + ' /元</span></div>';
+  html += `</div>
+    <div class="quote-footer">
+      <p>1. 以上为零售价，实际成交价以双方协商为准。</p>
+      <p>2. 报价有效期 30 天。</p>
+      <p>3. 买断与年费为不同计费方式，请按实际需求选择。</p>`;
+  if (serverFeeItems.length > 0) {
+    html += `<p>4. 买断产品次年续费参考：</p>`;
+    serverFeeItems.forEach(function(s) { html += `<p style="padding-left:12px;">${s}</p>`; });
+  }
+  html += `</div></div>`;
+  
+  body.innerHTML = html;
+}
+
+// ===== 导出功能 =====
+function exportQuoteCSV() {
+  if (!selectedItems.length) { alert('请先选择产品'); return; }
+  const today = new Date();
+  const dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const customer = document.getElementById('quote-customer')?.value || '';
+  let csv = '\uFEFF产品报价单\n';
+  csv += '客户名称,'+(customer||'')+'\n';
+  csv += '报价日期,'+dateStr+'\n\n';
+  csv += '序号,产品名称,版本/规格,用户数,购买方式,零售价\n';
+  selectedItems.forEach((item, idx) => {
+    csv += [idx+1, '"'+(item.product_name||'').replace(/"/g,'""')+'"', '"'+(item.spec||'').replace(/"/g,'""')+'"',
+      '"'+(item.user_count||'').replace(/"/g,'""')+'"', '"'+(item.buy_type||'').replace(/"/g,'""')+'"',
+      '"'+(item.retail_price||'').replace(/"/g,'""')+'"'].join(',')+'\n';
+  });
+  csv += '\n说明：\n1. 以上为零售价，实际成交价以双方协商为准。\n2. 报价有效期 30 天。';
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const link = document.createElement('a');
+  link.download = '报价单_'+dateStr+'.csv';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function getQuoteText() {
+  const today = new Date();
+  const dateStr = document.getElementById('quote-date')?.value || (today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'));
+  const customer = document.getElementById('quote-customer')?.value || '';
+  let totalAmount = 0;
+  const lines = [];
+  lines.push('产品解决方案报价');
+  if (customer) lines.push('客户名称：' + customer);
+  lines.push('报价日期：' + dateStr);
+  lines.push('');
+  selectedItems.forEach(function(item, idx) {
+    const priceNum = parseFloat((item.retail_price||'').replace(/[^0-9.]/g,''));
+    if (priceNum > 0) totalAmount += priceNum;
+    let price = item.retail_price || '-';
+    if (item.retail_price && /^\d+$/.test(item.retail_price.replace(/[,.]/g,''))) {
+      price = item.retail_price + (item.buy_type === '年费' ? '/元年' : '/元');
+    }
+    lines.push((idx+1) + '. ' + (item.product_name||'') + ' ' + (item.spec||'') + ' ' + (item.user_count?('用户数:'+item.user_count+' '):'') + (item.buy_type||'') + ' - ' + price);
+  });
+  lines.push('');
+  if (totalAmount > 0) lines.push('合计金额：' + totalAmount.toLocaleString() + ' 元');
+  lines.push('');
+  lines.push('1. 以上为零售价，实际成交价以双方协商为准。');
+  lines.push('2. 报价有效期 30 天。');
+  return lines.join('\n');
+}
+
+function copyQuoteText() {
+  if (!selectedItems.length) { alert('请先选择产品'); return; }
+  const text = getQuoteText();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板！'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('已复制到剪贴板！');
+  }
+}
+
+function printQuote() {
+  const qd = document.getElementById('quote-doc');
+  if (!qd) return;
+  const actionCells = qd.querySelectorAll('th:last-child, td:last-child');
+  actionCells.forEach(el => el.style.display = 'none');
+  const inputs = qd.querySelectorAll('input');
+  const inputReplacements = [];
+  inputs.forEach(inp => {
+    const span = document.createElement('span');
+    span.textContent = inp.value || '';
+    inp.parentNode.replaceChild(span, inp);
+    inputReplacements.push({span, inp});
+  });
+  const printWin = window.open('', '_blank');
+  printWin.document.write('<html><head><title>产品报价单</title><style>');
+  printWin.document.write('body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px;}');
+  printWin.document.write('table{width:100%;border-collapse:collapse;margin:10px 0;}');
+  printWin.document.write('th{background:#1A1A1A;color:#fff;padding:8px;text-align:left;font-size:12px;}');
+  printWin.document.write('td{padding:6px;border-bottom:1px solid #ddd;font-size:12px;}');
+  printWin.document.write('h1{text-align:center;font-size:20px;margin-bottom:10px;}');
+  printWin.document.write('.quote-header{text-align:center;margin-bottom:20px;border-bottom:2px solid #1A1A1A;padding-bottom:10px;}');
+  printWin.document.write('.quote-meta{display:flex;justify-content:space-between;margin-bottom:15px;font-size:13px;}');
+  printWin.document.write('.quote-footer{margin-top:15px;padding-top:10px;border-top:1px solid #ddd;font-size:11px;color:#666;}');
+  printWin.document.write('.quote-total{text-align:right;margin:10px 0;font-size:16px;}');
+  printWin.document.write('</style></head><body>');
+  printWin.document.write(qd.innerHTML);
+  printWin.document.write('</body></html>');
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 300);
+  
+  // Restore
+  inputReplacements.forEach(({span, inp}) => {
+    span.parentNode.replaceChild(inp, span);
+  });
+  actionCells.forEach(el => el.style.display = '');
+}
+
+function downloadQuotePNG() {
+  var btn = document.getElementById('download-png-btn');
+  var orig = btn.innerHTML;
+  btn.innerHTML = '生成中...'; btn.disabled = true;
+  var qd = document.getElementById('quote-doc');
+  if (!qd) { btn.innerHTML = orig; btn.disabled = false; return; }
+  
+  var actionCells = qd.querySelectorAll('th:last-child, td:last-child');
+  var inputs = qd.querySelectorAll('input');
+  var inputVals = [];
+  actionCells.forEach(function(el){ el.style.display = 'none'; });
+  inputs.forEach(function(inp, i) {
+    inputVals[i] = inp.value;
+    var span = document.createElement('span');
+    span.textContent = inp.value || '';
+    span.className = inp.className;
+    if (inp.id) span.id = inp.id;
+    inp.parentNode.replaceChild(span, inp);
+  });
+  
+  if (typeof html2canvas === 'undefined') {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = function() { doCapture(qd, actionCells, inputs, inputVals, btn, orig); };
+    s.onerror = function() {
+      restoreInputs(qd, actionCells, inputs, inputVals);
+      btn.innerHTML = orig; btn.disabled = false;
+      printQuote();
+    };
+    document.head.appendChild(s);
+  } else {
+    doCapture(qd, actionCells, inputs, inputVals, btn, orig);
+  }
+}
+
+function restoreInputs(qd, actionCells, inputs, inputVals) {
+  var spans = qd.querySelectorAll('span[data-was-input], span.quote-input');
+  inputs.forEach(function(inp, i) {
+    var span = inp.id ? qd.querySelector('span#' + inp.id) : null;
+    if (!span) {
+      var allSpans = qd.querySelectorAll('span');
+      for (var j = 0; j < allSpans.length; j++) {
+        if (allSpans[j].className === inp.className && !allSpans[j].getAttribute('data-restored')) {
+          span = allSpans[j];
+          span.setAttribute('data-restored', 'true');
+          break;
+        }
+      }
+    }
+    if (span) {
+      inp.value = inputVals[i] || '';
+      span.parentNode.replaceChild(inp, span);
+    }
+  });
+  actionCells.forEach(function(el){ el.style.display = ''; });
+}
+
+function doCapture(qd, actionCells, inputs, inputVals, btn, orig) {
+  var scale = window.devicePixelRatio > 2 ? 2.5 : 3;
+  html2canvas(qd, {scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false}).then(function(canvas) {
+    var now = new Date();
+    var fn = 'baojiadan_' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '.png';
+    var dataUrl = canvas.toDataURL('image/png');
+    
+    var overlay = document.getElementById('img-overlay');
+    var imgEl = document.getElementById('img-preview');
+    var dlEl = document.getElementById('img-download');
+    if (overlay && imgEl) {
+      imgEl.src = dataUrl;
+      overlay.classList.add('show');
+      if (!isMobile && dlEl) {
+        dlEl.style.display = 'inline-block';
+        dlEl.href = dataUrl;
+        dlEl.download = fn;
+      }
+    } else {
+      var link = document.createElement('a');
+      link.download = fn;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    restoreInputs(qd, actionCells, inputs, inputVals);
+    btn.innerHTML = orig; btn.disabled = false;
+  }).catch(function(err) {
+    restoreInputs(qd, actionCells, inputs, inputVals);
+    btn.innerHTML = orig; btn.disabled = false;
+    alert('图片生成失败，请尝试打印/PDF功能');
+  });
+}
+
+// ===== 搜索 =====
+document.getElementById('search-input').addEventListener('input', function() {
+  if (!currentSheet) {
+    var searchVal = this.value.trim().toLowerCase();
+    if (!searchVal) return;
+    var results = [];
+    Object.keys(allData).forEach(function(sn) {
+      var cat = categories.find(c => c.name === sn);
+      if (!cat || cat.group_name !== currentGroup) return;
+      allData[sn].forEach(function(r) {
+        if ((r.product_name||'').toLowerCase().includes(searchVal) ||
+            (r.spec||'').toLowerCase().includes(searchVal) ||
+            (r.notes||'').toLowerCase().includes(searchVal)) {
+          if (r.product_name && r.retail_price) results.push(r);
+        }
+      });
+    });
+    currentSheet = null;
+    document.querySelectorAll('.prod-tab').forEach(function(t){t.classList.remove('active');});
+    renderSearchResults(results);
+  } else {
+    renderTable();
+  }
+});
+
+function renderSearchResults(records) {
+  const container = document.getElementById('table-container');
+  if (!records.length) {
+    container.innerHTML = '<div class="empty-state"><p>未找到匹配的产品</p></div>';
+    return;
+  }
+  const searchVal = document.getElementById('search-input').value.trim().toLowerCase();
+  const hasSpec = records.some(r => r.spec);
+  const hasBuyType = records.some(r => r.buy_type);
+  
+  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th class="col-check"></th>
+    <th>产品名称</th>
+    ${hasSpec?'<th>版本/规格</th>':''}
+    <th>用户数</th>
+    ${hasBuyType?'<th>购买方式</th>':''}
+    <th class="col-price">零售价</th>
+  </tr></thead><tbody>`;
+  
+  records.forEach(r => {
+    const isSelected = selectedItems.some(i => i.id === r.id);
+    var retailDisplay = r.retail_price || '-';
+    if (r.retail_price && /^\d+$/.test(r.retail_price.replace(/[,.]/g,''))) {
+      retailDisplay = r.retail_price + (r.buy_type === '年费' ? '/元年' : '/元');
+    }
+    html += `<tr>
+      <td class="col-check"><input type="checkbox" data-id="${r.id}" ${isSelected?'checked':''} onchange="toggleItem('${r.id}')"></td>
+      <td>${highlightText(r.product_name, searchVal)}</td>
+      ${hasSpec?`<td>${highlightText(r.spec||'', searchVal)}</td>`:''}
+      <td>${r.user_count||''}</td>
+      ${hasBuyType?`<td>${r.buy_type||''}</td>`:''}
+      <td class="col-price price-retail">${retailDisplay}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// 点击遮罩关闭弹窗
+document.getElementById('quote-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeQuoteModal();
+});
+
+// 启动
+init();
+</script>
+</body>
+</html>
